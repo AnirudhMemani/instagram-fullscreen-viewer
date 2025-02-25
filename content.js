@@ -22,6 +22,22 @@ function removeSiblingDivs() {
 
             // Enable video controls
             video.controls = true;
+
+            // Store the initial muted state
+            let userMutedState = video.muted;
+
+            // Add event listeners to maintain user's audio preference
+            video.addEventListener('volumechange', () => {
+                userMutedState = video.muted;
+            });
+
+            video.addEventListener('play', () => {
+                video.muted = userMutedState;
+            });
+
+            video.addEventListener('ended', () => {
+                video.muted = userMutedState;
+            });
         }
 
         for (const img of images) {
@@ -45,10 +61,23 @@ function removeSiblingDivs() {
 }
 
 function handleImageClick(event) {
-    if (document.fullscreenElement) {
-        document.exitFullscreen();
-    } else if (event.target.tagName.toLowerCase() === 'img' && event.target.parentElement.tagName.toLowerCase() !== 'span') {
-        event.target.requestFullscreen();
+    try {
+        const target = event.target;
+
+        // Handle video clicks differently
+        if (target.tagName.toLowerCase() === 'video') {
+            // Don't exit fullscreen when clicking video
+            return;
+        }
+
+        // Handle other fullscreen cases
+        if (document.fullscreenElement) {
+            document.exitFullscreen();
+        } else if (target.tagName.toLowerCase() === 'img' && target.parentElement.tagName.toLowerCase() !== 'span') {
+            target.requestFullscreen();
+        }
+    } catch (error) {
+        console.error("Error in handleImageClick:", error);
     }
 }
 
