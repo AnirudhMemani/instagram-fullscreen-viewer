@@ -47,7 +47,7 @@ function removeSiblingDivs() {
 function handleImageClick(event) {
     if (document.fullscreenElement) {
         document.exitFullscreen();
-    } else if (event.target.tagName.toLowerCase() === 'img') {
+    } else if (event.target.tagName.toLowerCase() === 'img' && event.target.parentElement.tagName.toLowerCase() !== 'span') {
         event.target.requestFullscreen();
     }
 }
