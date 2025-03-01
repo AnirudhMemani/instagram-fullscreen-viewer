@@ -1,3 +1,18 @@
+// Wait for Instagram to initialize
+function waitForInstagram() {
+    return new Promise(resolve => {
+        const checkReady = () => {
+            // Check if main Instagram content is loaded
+            if (document.querySelector('main[role="main"]')) {
+                resolve();
+            } else {
+                setTimeout(checkReady, 100);
+            }
+        };
+        checkReady();
+    });
+}
+
 function removeSiblingDivs() {
     try {
         // Find all video elements
@@ -81,17 +96,29 @@ function handleImageClick(event) {
     }
 }
 
-// Run initially
-removeSiblingDivs();
+// Initialize with proper timing
+async function initialize() {
+    try {
+        await waitForInstagram();
+        
+        // Run initially
+        removeSiblingDivs();
 
-// Add click listener for images
-document.addEventListener('click', handleImageClick, true);
+        // Add click listener for images
+        document.addEventListener('click', handleImageClick, true);
 
-// Create a MutationObserver to handle dynamically loaded content
-const observer = new MutationObserver(removeSiblingDivs);
+        // Create a MutationObserver to handle dynamically loaded content
+        const observer = new MutationObserver(removeSiblingDivs);
 
-// Start observing the document with the configured parameters
-observer.observe(document.body, {
-    childList: true,
-    subtree: true
-});
+        // Start observing the document with the configured parameters
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    } catch (error) {
+        console.error("Error initializing extension:", error);
+    }
+}
+
+// Start initialization
+initialize();
