@@ -6,9 +6,6 @@
     "icons": {
         "128": "icons/ifv-icon.png"
     },
-    "permissions": [
-        "activeTab"
-    ],
     "incognito": "split",
     "content_scripts": [
         {
