@@ -137,7 +137,7 @@ function createImageViewer(imgElement) {
     overlay.style.left = "0";
     overlay.style.width = "100%";
     overlay.style.height = "100%";
-    overlay.style.backgroundColor = "rgba(0, 0, 0, 0.9)";
+    overlay.style.backgroundColor = "rgba(0, 0, 0, 1)";
     overlay.style.zIndex = "999999";
     overlay.style.display = "flex";
     overlay.style.justifyContent = "center";
@@ -156,8 +156,8 @@ function createImageViewer(imgElement) {
     // Create image element
     const img = document.createElement("img");
     img.src = imgElement.src;
-    img.style.maxWidth = "90%";
-    img.style.maxHeight = "90%";
+    img.style.maxWidth = "100%";
+    img.style.maxHeight = "100%";
     img.style.objectFit = "contain";
     img.style.transition = "transform 0.1s ease";
     img.style.cursor = "zoom-in";
