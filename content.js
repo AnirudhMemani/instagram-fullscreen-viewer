@@ -47,8 +47,6 @@ function removeSiblingDivs() {
             // Enable video controls
             video.controls = true;
 
-            console.log("pathname: ", window.location.pathname);
-
             // Store the initial muted state
             let userMutedState = video.muted;
 
@@ -72,6 +70,8 @@ function removeSiblingDivs() {
             if (!parent) continue;
 
             const parentSiblings = parent?.parentElement?.children;
+
+            if (!parentSiblings) continue;
 
             for (let i = parentSiblings?.length - 1; i >= 0; i--) {
                 const sibling = parentSiblings?.[i];
