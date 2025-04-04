@@ -47,6 +47,8 @@ function removeSiblingDivs() {
             // Enable video controls
             video.controls = true;
 
+            console.log("pathname: ", window.location.pathname);
+
             // Store the initial muted state
             let userMutedState = video.muted;
 
@@ -70,12 +72,14 @@ function removeSiblingDivs() {
             if (!parent) continue;
 
             const parentSiblings = parent?.parentElement?.children;
-            if (!parentSiblings) continue;
 
             for (let i = parentSiblings?.length - 1; i >= 0; i--) {
                 const sibling = parentSiblings?.[i];
                 if (sibling && sibling !== parent && sibling?.tagName?.toLowerCase() === "div") {
-                    sibling?.remove();
+                    const classCount = sibling.classList?.length || 0;
+                    if (classCount <= 2) {
+                        sibling?.remove();
+                    }
                 }
             }
         }
@@ -101,6 +105,26 @@ function handleImageClick(event) {
             // Check if the image has the specific referrerpolicy
             if (target.getAttribute("referrerpolicy") === "origin-when-cross-origin") {
                 // Let the default action continue for these images
+                return;
+            }
+
+            // Check if parent has specific padding-bottom style (typically for specific image containers)
+            const computedStyle = window.getComputedStyle(target.parentElement);
+            const paddingBottom = computedStyle.paddingBottom;
+
+            // Calculate the percentage if it's in pixels
+            if (paddingBottom.endsWith("px")) {
+                const paddingPx = parseFloat(paddingBottom);
+                const parentWidth = target.parentElement.clientWidth;
+                const paddingPercentage = (paddingPx / parentWidth) * 100;
+
+                // Check if it's approximately 133.333% (allow some margin for rounding)
+                if (paddingPercentage > 130 && paddingPercentage < 136) {
+                    console.log("Skipping image due to specific padding-bottom style equivalent to ~133.333%");
+                    return;
+                }
+            } else if (paddingBottom === "133.333%") {
+                console.log("Skipping image due to specific padding-bottom percentage style");
                 return;
             }
 
