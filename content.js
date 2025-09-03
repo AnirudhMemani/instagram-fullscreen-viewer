@@ -25,6 +25,7 @@ const viewerState = {
 // Store global audio preference
 const audioState = {
   userPrefersMuted: true, // Instagram default
+  userVolumeLevel: 1.0, // Instagram default (full volume when unmuted)
   initialized: false,
 };
 
@@ -36,13 +37,24 @@ function initializeAudioPreference() {
   if (savedPreference !== null) {
     audioState.userPrefersMuted = savedPreference === "true";
   }
+
+  const savedVolume = localStorage.getItem("instagram-volume-preference");
+  if (savedVolume !== null) {
+    audioState.userVolumeLevel = parseFloat(savedVolume);
+  }
+
   audioState.initialized = true;
 }
 
 // Save audio preference to localStorage
-function saveAudioPreference(muted) {
+function saveAudioPreference(muted, volume = null) {
   audioState.userPrefersMuted = muted;
   localStorage.setItem("instagram-audio-preference", muted.toString());
+
+  if (volume !== null) {
+    audioState.userVolumeLevel = volume;
+    localStorage.setItem("instagram-volume-preference", volume.toString());
+  }
 }
 
 function removeSiblingDivs() {
@@ -75,6 +87,7 @@ function removeSiblingDivs() {
 
       // Apply global audio preference to new videos
       video.muted = audioState.userPrefersMuted;
+      video.volume = audioState.userVolumeLevel;
 
       // Add event listener to track user's audio preference changes
       if (!video.hasAttribute("data-audio-listener-added")) {
@@ -83,20 +96,17 @@ function removeSiblingDivs() {
         video.addEventListener("volumechange", () => {
           // Only save preference when user actively changes it
           // (not when we programmatically set it)
-          console.log("volumechange event");
           if (document.activeElement === video) {
-            console.log("volumechange event | saving audio preference to", video.muted ? "muted" : "unmuted");
-            saveAudioPreference(video.muted);
+            saveAudioPreference(video.muted, video.volume);
           }
         });
 
         video.addEventListener("play", () => {
           // Only save preference when user actively changes it
           // (not when we programmatically set it)
-          console.log("play event");
           setTimeout(() => {
-            console.log("play event | setting video to", audioState.userPrefersMuted ? "muted" : "unmuted");
             video.muted = audioState.userPrefersMuted;
+            video.volume = audioState.userVolumeLevel;
           }, 400);
         });
       }
@@ -158,11 +168,9 @@ function handleImageClick(event) {
 
         // Check if it's approximately 133.333% (allow some margin for rounding)
         if (paddingPercentage > 130 && paddingPercentage < 136) {
-          console.log("Skipping image due to specific padding-bottom style equivalent to ~133.333%");
           return;
         }
       } else if (paddingBottom === "133.333%") {
-        console.log("Skipping image due to specific padding-bottom percentage style");
         return;
       }
 
