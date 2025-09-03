@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Instagram Fullscreen Viewer",
-  "version": "1.3",
+  "version": "1.4",
   "description": "Enables fullscreen mode for Instagram videos, reels, and images with enhanced controls",
   "icons": {
     "128": "icons/ifv-icon.png"

@@ -22,8 +22,34 @@ const viewerState = {
   currentImageSrc: null,
 };
 
+// Store global audio preference
+const audioState = {
+  userPrefersMuted: true, // Instagram default
+  initialized: false,
+};
+
+// Initialize audio preference from localStorage
+function initializeAudioPreference() {
+  if (audioState.initialized) return;
+
+  const savedPreference = localStorage.getItem("instagram-audio-preference");
+  if (savedPreference !== null) {
+    audioState.userPrefersMuted = savedPreference === "true";
+  }
+  audioState.initialized = true;
+}
+
+// Save audio preference to localStorage
+function saveAudioPreference(muted) {
+  audioState.userPrefersMuted = muted;
+  localStorage.setItem("instagram-audio-preference", muted.toString());
+}
+
 function removeSiblingDivs() {
   try {
+    // Initialize audio preference on first run
+    initializeAudioPreference();
+
     // Find all video elements
     const videos = document.getElementsByTagName("video");
     const images = document.getElementsByTagName("img");
@@ -47,21 +73,33 @@ function removeSiblingDivs() {
       // Enable video controls
       video.controls = true;
 
-      // Store the initial muted state
-      let userMutedState = video.muted;
+      // Apply global audio preference to new videos
+      video.muted = audioState.userPrefersMuted;
 
-      // Add event listeners to maintain user's audio preference
-      video.addEventListener("volumechange", () => {
-        userMutedState = video.muted;
-      });
+      // Add event listener to track user's audio preference changes
+      if (!video.hasAttribute("data-audio-listener-added")) {
+        video.setAttribute("data-audio-listener-added", "true");
 
-      video.addEventListener("play", () => {
-        video.muted = userMutedState;
-      });
+        video.addEventListener("volumechange", () => {
+          // Only save preference when user actively changes it
+          // (not when we programmatically set it)
+          console.log("volumechange event");
+          if (document.activeElement === video) {
+            console.log("volumechange event | saving audio preference to", video.muted ? "muted" : "unmuted");
+            saveAudioPreference(video.muted);
+          }
+        });
 
-      video.addEventListener("ended", () => {
-        video.muted = userMutedState;
-      });
+        video.addEventListener("play", () => {
+          // Only save preference when user actively changes it
+          // (not when we programmatically set it)
+          console.log("play event");
+          setTimeout(() => {
+            console.log("play event | setting video to", audioState.userPrefersMuted ? "muted" : "unmuted");
+            video.muted = audioState.userPrefersMuted;
+          }, 400);
+        });
+      }
     }
 
     for (const img of images) {
