@@ -29,6 +29,41 @@ const audioState = {
   initialized: false,
 };
 
+// Track programmatic audio updates and per-video initialization
+const programmaticAudioChange = new WeakMap();
+const audioInitializedVideos = new WeakSet();
+const userAdjustedAudioVideos = new WeakSet();
+const lastUserPersistAt = new WeakMap();
+const lastSeekingAt = new WeakMap();
+const lastPlayAt = new WeakMap();
+const lastEndedAt = new WeakMap();
+// Enforcement timers removed in favor of a simple 250ms post-playing set
+
+function recently(timestamp, windowMs) {
+  if (!timestamp) return false;
+  return Date.now() - timestamp < windowMs;
+}
+
+function setVideoAudioProgrammatically(video, muted, volume) {
+  programmaticAudioChange.set(video, true);
+  try {
+    video.muted = muted;
+    if (typeof volume === "number") {
+      video.volume = volume;
+    }
+  } finally {
+    // Clear suppression on the next tick so the resulting volumechange is ignored
+    setTimeout(() => programmaticAudioChange.delete(video), 0);
+  }
+}
+
+function applyAudioPreferenceToAllVideos() {
+  const videos = document.getElementsByTagName("video");
+  for (const v of videos) {
+    setVideoAudioProgrammatically(v, audioState.userPrefersMuted, audioState.userVolumeLevel);
+  }
+}
+
 // Initialize audio preference from localStorage
 function initializeAudioPreference() {
   if (audioState.initialized) return;
@@ -85,29 +120,46 @@ function removeSiblingDivs() {
       // Enable video controls
       video.controls = true;
 
-      // Apply global audio preference to new videos
-      video.muted = audioState.userPrefersMuted;
-      video.volume = audioState.userVolumeLevel;
+      // Do not apply audio preference yet; wait until the video starts playing
 
       // Add event listener to track user's audio preference changes
       if (!video.hasAttribute("data-audio-listener-added")) {
         video.setAttribute("data-audio-listener-added", "true");
 
-        video.addEventListener("volumechange", () => {
-          // Only save preference when user actively changes it
-          // (not when we programmatically set it)
-          if (document.activeElement === video) {
-            saveAudioPreference(video.muted, video.volume);
-          }
+        video.addEventListener("volumechange", (e) => {
+          // Persist only on trusted, non-suppressed user actions
+          if (!e.isTrusted) return;
+          if (programmaticAudioChange.get(video)) return;
+          // Ignore volume changes that are incidental to scrubbing or autoplay recovery
+          if (recently(lastSeekingAt.get(video), 800)) return;
+          if (recently(lastPlayAt.get(video), 600)) return;
+          if (recently(lastEndedAt.get(video), 600)) return;
+          userAdjustedAudioVideos.add(video);
+          saveAudioPreference(video.muted, video.volume);
+          lastUserPersistAt.set(video, Date.now());
+          // Apply the new global preference across all current videos
+          applyAudioPreferenceToAllVideos();
         });
 
         video.addEventListener("play", () => {
-          // Only save preference when user actively changes it
-          // (not when we programmatically set it)
+          lastPlayAt.set(video, Date.now());
+        });
+
+        // Track seeking to avoid saving preference on timeline scrubs
+        video.addEventListener("seeking", () => {
+          lastSeekingAt.set(video, Date.now());
+        });
+
+        // Track ended to handle loops
+        video.addEventListener("ended", () => {
+          lastEndedAt.set(video, Date.now());
+        });
+
+        // On playing, apply saved preference after 250ms to let Instagram set its defaults first
+        video.addEventListener("playing", () => {
           setTimeout(() => {
-            video.muted = audioState.userPrefersMuted;
-            video.volume = audioState.userVolumeLevel;
-          }, 400);
+            setVideoAudioProgrammatically(video, audioState.userPrefersMuted, audioState.userVolumeLevel);
+          }, 250);
         });
       }
     }
